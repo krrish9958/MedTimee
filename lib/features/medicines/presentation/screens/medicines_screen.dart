@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/date_utils.dart';
+import '../../../../shared/widgets/enhanced_ui_widgets.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/medicine.dart';
 import '../../domain/entities/medicine_intake.dart';
@@ -32,6 +33,18 @@ class MedicinesScreen extends ConsumerWidget {
     final state = ref.watch(medicinesProvider);
     final authState = ref.watch(authProvider);
     final notifier = ref.read(medicinesProvider.notifier);
+
+    final completedCount = state.today.where((e) => e.isCompleted).length;
+    final totalCount = state.today.length;
+    final pendingCount = state.today.where((e) => !e.isCompleted).length;
+
+    final wellnessTips = [
+      'Remember to take medicines with water for better absorption.',
+      'Set daily reminders for consistent medicine intake.',
+      'Keep medicines in a cool, dry place away from sunlight.',
+      'Never skip doses without consulting your doctor.',
+      'Track your symptoms regularly for better health management.',
+    ];
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -63,42 +76,65 @@ class MedicinesScreen extends ConsumerWidget {
                     },
                   ),
                   const SizedBox(height: 16),
+                  StaggerReveal(
+                    delayMs: 0,
+                    child: HealthStatsCard(
+                      completedCount: completedCount,
+                      totalCount: totalCount,
+                      period: 'Today',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  StaggerReveal(
+                    delayMs: 100,
+                    child: QuickRemindersCard(
+                      pendingCount: pendingCount,
+                      completedCount: completedCount,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  StaggerReveal(
+                    delayMs: 150,
+                    child: WellnessTipCard(tips: wellnessTips),
+                  ),
+                  const SizedBox(height: 16),
                   const _SectionTitle(
                     text: 'Your Next Pill',
                     icon: Icons.alarm_rounded,
                   ),
                   const SizedBox(height: 12),
-                  _StaggerReveal(delayMs: 30, child: _nextPillCard(context, state)),
+                  StaggerReveal(
+                    delayMs: 200,
+                    child: _nextPillCard(context, state),
+                  ),
                   const SizedBox(height: 12),
                   const _SectionTitle(
                     text: 'Today\'s Schedule',
                     icon: Icons.view_timeline_rounded,
                   ),
                   const SizedBox(height: 12),
-                  ..._scheduleCards(context, state, notifier)
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) => _StaggerReveal(
-                          delayMs: 50 + (entry.key * 45),
-                          child: entry.value,
-                        ),
-                      ),
+                  ..._scheduleCards(
+                    context,
+                    state,
+                    notifier,
+                  ).asMap().entries.map(
+                    (entry) => StaggerReveal(
+                      delayMs: 250 + (entry.key * 45),
+                      child: entry.value,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   const _SectionTitle(
                     text: 'Your Cabinet',
                     icon: Icons.medication_rounded,
                   ),
                   const SizedBox(height: 12),
-                  ..._cabinetCards(context, state)
-                      .asMap()
-                      .entries
-                      .map(
-                        (entry) => _StaggerReveal(
-                          delayMs: 80 + (entry.key * 40),
-                          child: entry.value,
-                        ),
-                      ),
+                  ..._cabinetCards(context, state).asMap().entries.map(
+                    (entry) => StaggerReveal(
+                      delayMs: 300 + (entry.key * 40),
+                      child: entry.value,
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -115,7 +151,7 @@ class MedicinesScreen extends ConsumerWidget {
           padding: EdgeInsets.all(14),
           child: Row(
             children: [
-              _IconBubble(icon: Icons.self_improvement_rounded),
+              IconBubble(icon: Icons.self_improvement_rounded),
               SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -197,21 +233,22 @@ class MedicinesScreen extends ConsumerWidget {
     Medicine medicine,
     MedicineIntake intake,
   ) {
-    return _CardBox(
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          children: [
-            const _IconBubble(icon: Icons.vaccines_rounded),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    medicine.name,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
+    return FloatingAnimation(
+      child: _CardBox(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              IconBubble(icon: Icons.vaccines_rounded),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      medicine.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
                       fontSize: 24 / 1.5,
                       color: _primaryText(context),
                     ),
@@ -244,6 +281,7 @@ class MedicinesScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -382,7 +420,7 @@ class MedicinesScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  const _IconBubble(icon: Icons.medication_liquid_rounded),
+                  IconBubble(icon: Icons.medication_liquid_rounded),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -443,45 +481,47 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(13, 13, 13, 11),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: isDark
-              ? [
-                  const Color(0xFF2B3550).withValues(alpha: 0.96),
-                  const Color(0xFF252F47).withValues(alpha: 0.96),
-                ]
-              : const [Color(0xEBE7D8FF), Color(0xD9D7ECFF)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFF4A5A7B).withValues(alpha: 0.75)
-              : Colors.white.withValues(alpha: 0.9),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x172A1E4A),
-            blurRadius: 16,
-            offset: Offset(0, 7),
+    return FloatingAnimation(
+      duration: const Duration(milliseconds: 3500),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(13, 13, 13, 11),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark
+                ? [
+                    const Color(0xFF2B3550).withValues(alpha: 0.96),
+                    const Color(0xFF252F47).withValues(alpha: 0.96),
+                  ]
+                : const [Color(0xEBE7D8FF), Color(0xD9D7ECFF)],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(25),
-              gradient: LinearGradient(
-                colors: isDark
-                    ? [const Color(0xFF404E6B), const Color(0xFF33425F)]
-                    : const [Color(0xFFF1E9FF), Color(0xFFE0D2FF)],
-                begin: Alignment.topLeft,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark
+                ? const Color(0xFF4A5A7B).withValues(alpha: 0.75)
+                : Colors.white.withValues(alpha: 0.9),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x172A1E4A),
+              blurRadius: 16,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(25),
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [const Color(0xFF404E6B), const Color(0xFF33425F)]
+                      : const [Color(0xFFF1E9FF), Color(0xFFE0D2FF)],
+                  begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
             ),
@@ -497,27 +537,30 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                'Hi ${_greetingName(userName)}!',
-                style: TextStyle(
-                  fontSize: 32 / 1.35,
-                  fontWeight: FontWeight.w700,
-                  color: _primaryText(context),
+                  'Hi ${_greetingName(userName)}!',
+                  style: TextStyle(
+                    fontSize: 32 / 1.35,
+                    fontWeight: FontWeight.w700,
+                    color: _primaryText(context),
+                  ),
                 ),
-              ),
-              Text(
-                'How do you feel today?',
-                style: TextStyle(
-                  color: _secondaryText(context),
-                  fontSize: 15,
+                Text(
+                  'How do you feel today?',
+                  style: TextStyle(
+                    color: _secondaryText(context),
+                    fontSize: 15,
+                  ),
                 ),
-              ),
                 const SizedBox(height: 5),
                 Wrap(
                   spacing: 5,
                   runSpacing: 4,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: isDark
                             ? const Color(0xFF3A4864)
@@ -536,7 +579,10 @@ class _Header extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: isDark
                             ? const Color(0xFF4A3C84)
@@ -572,6 +618,7 @@ class _Header extends StatelessWidget {
             label: const Text('Add'),
           ),
         ],
+      ),
       ),
     );
   }
@@ -647,75 +694,6 @@ class _CardBox extends StatelessWidget {
           ],
         ),
         child: child,
-      ),
-    );
-  }
-}
-
-class _IconBubble extends StatelessWidget {
-  const _IconBubble({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 38,
-      height: 38,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEFE9FF),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(
-        icon,
-        color: _violet,
-        size: 20,
-      ),
-    );
-  }
-}
-
-class _StaggerReveal extends StatefulWidget {
-  const _StaggerReveal({required this.delayMs, required this.child});
-
-  final int delayMs;
-  final Widget child;
-
-  @override
-  State<_StaggerReveal> createState() => _StaggerRevealState();
-}
-
-class _StaggerRevealState extends State<_StaggerReveal> {
-  bool _visible = false;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer(Duration(milliseconds: widget.delayMs), () {
-      if (mounted) {
-        setState(() => _visible = true);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSlide(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      offset: _visible ? Offset.zero : const Offset(0, 0.05),
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOut,
-        opacity: _visible ? 1 : 0,
-        child: widget.child,
       ),
     );
   }

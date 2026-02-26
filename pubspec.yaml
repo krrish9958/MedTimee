@@ -1,6 +1,6 @@
 ﻿name: flutter_application_1
 description: "A new Flutter project."
-publish_to: 'none'
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
@@ -22,6 +22,8 @@ dependencies:
   firebase_core: ^3.15.2
   firebase_auth: ^5.6.3
   google_sign_in: ^6.2.2
+  boxicons: ^1.0.2
+  flutter_animate: ^4.2.0
 
 dev_dependencies:
   flutter_test:
@@ -33,4 +35,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
